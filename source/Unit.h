@@ -7,7 +7,7 @@ class Unit {
 public:
 	TCODPath* path;
 	int pathTicker = 0;
-	int moveSpeed = 1;
+	int moveSpeed = 2;
 	int moveTicker = 0;
 
 	Point postion;
