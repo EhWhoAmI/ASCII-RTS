@@ -100,6 +100,12 @@
       <SubSystem>Console</SubSystem>
       <AdditionalDependencies>libtcod.lib;libtcodgui.lib;SDL2.lib;SDL2main.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>copy "$(SolutionDir)terminal.png" "$(TargetDir)\terminal.png"
+copy "$(SolutionDir)externals\libtcod-1.6.7-x86_64-msvc\libtcod.dll" "$(TargetDir)\libtcod.dll"
+copy "$(SolutionDir)externals\libtcod-1.6.7-x86_64-msvc\libtcodgui.dll" "$(TargetDir)\libtcodgui.dll"
+copy "$(SolutionDir)externals\SDL2-2.0.9\lib\x64\SDL2.dll" "$(TargetDir)\SDL2.dll"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -132,6 +138,12 @@
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalDependencies>libtcod.lib;libtcodgui.lib;SDL2.lib;SDL2main.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>copy "$(SolutionDir)terminal.png" "$(TargetDir)\terminal.png"
+copy "$(SolutionDir)externals\libtcod-1.6.7-x86_64-msvc\libtcod.dll" "$(TargetDir)\libtcod.dll"
+copy "$(SolutionDir)externals\libtcod-1.6.7-x86_64-msvc\libtcodgui.dll" "$(TargetDir)\libtcodgui.dll"
+copy "$(SolutionDir)externals\SDL2-2.0.9\lib\x64\SDL2.dll" "$(TargetDir)\SDL2.dll"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\source\main.cpp" />
@@ -139,6 +151,26 @@
   <ItemGroup>
     <ClInclude Include="..\source\Map.h" />
     <ClInclude Include="..\source\Unit.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="externals\libtcod-1.6.7-x86_64-msvc\libtcod.dll">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+      <DeploymentContent>true</DeploymentContent>
+    </None>
+    <None Include="externals\libtcod-1.6.7-x86_64-msvc\libtcodgui.dll">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+      <DeploymentContent>true</DeploymentContent>
+    </None>
+    <None Include="externals\SDL2-2.0.9\lib\x64\SDL2.dll">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+      <DeploymentContent>true</DeploymentContent>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="terminal.png">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+      <DeploymentContent>true</DeploymentContent>
+    </Image>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

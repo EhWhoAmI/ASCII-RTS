@@ -1,10 +1,10 @@
 #pragma once
 
 struct Point {
-	int x;
-	int y;
+	double x;
+	double y;
 
-	Point(int _x, int _y) {
+	Point(double _x, double _y) {
 		x = _x;
 		y = _y;
 	}
@@ -44,5 +44,21 @@ public:
 
 	Tile getTile(int x, int y) {
 		return tiles[x + y * width];
+	}
+};
+
+#define ACTION_MOVE 0
+#define ACTION_ATTACK 1
+
+
+struct Action {
+public:
+	Point position;
+	int type;
+	int getX() {
+		return position.x;
+	}
+	int getY() {
+		return position.y;
 	}
 };

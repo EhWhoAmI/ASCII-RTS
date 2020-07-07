@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="dlls">
+      <UniqueIdentifier>{0eabf2f5-716b-4fe8-b7be-0709535abe40}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\source\main.cpp">
@@ -26,5 +29,21 @@
     <ClInclude Include="..\source\Map.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="externals\libtcod-1.6.7-x86_64-msvc\libtcod.dll">
+      <Filter>dlls</Filter>
+    </None>
+    <None Include="externals\libtcod-1.6.7-x86_64-msvc\libtcodgui.dll">
+      <Filter>dlls</Filter>
+    </None>
+    <None Include="externals\SDL2-2.0.9\lib\x64\SDL2.dll">
+      <Filter>dlls</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="terminal.png">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
 </Project>

@@ -6,13 +6,15 @@
 #include "libtcod.hpp"
 #include <iostream>
 #include <vector>
+#include <cmath>
+#include <map>
 #include "Unit.h"
-
 
 
 void input(TCOD_key_t *key, TCOD_mouse_t *mouse);
 void update();
 void render();
+void callControlGroup(TCOD_key_t* key, int keyNum);
 
 TCODImage minimapImg(160, 100);
 
@@ -37,10 +39,14 @@ int viewportX = 0;
 int viewportY = 0;
 
 bool rightMouseClicked = false;
-
+std::vector<Projectile*> projectiles;
 std::vector<Unit*> *controlGroups = new std::vector<Unit*>[10];
 bool end = false;
 
+int hotkeyStartChar = 30;
+
+int playerTeam = 1;
+std::map<std::string, int> map;
 #ifdef DEBUG
 #ifdef _WIN32
 int sq_main();
@@ -54,7 +60,7 @@ int main(int argc, char* argv[])
 #endif
 #else
 int main(int argc, char* argv[]) {
-#endif // !DEBU
+#endif // !DEBUG
 	TCODConsole::initRoot(160, 100, "Squads", false);
 	
 	TCODSystem::setFps(60);
@@ -64,12 +70,14 @@ int main(int argc, char* argv[]) {
 	test->postion.x = 80;
 	test->postion.y = 50;
 	test->goingTo = test->postion;
+	test->team = 1;
 	test->color = TCODColor::green;
 
 	Unit* test2 = new Unit();
 	test2->character = '@';
 	test2->postion.x = 81;
 	test2->postion.y = 51;
+	test2->team = 1;
 	test2->goingTo = test2->postion;
 	test2->color = TCODColor::red;
 
@@ -77,6 +85,7 @@ int main(int argc, char* argv[]) {
 	test3->character = '@';
 	test3->postion.x = 83;
 	test3->postion.y = 51;
+	test3->team = 1;
 	test3->goingTo = test3->postion;
 	test3->color = TCODColor::orange;
 
@@ -84,20 +93,26 @@ int main(int argc, char* argv[]) {
 	test4->character = '@';
 	test4->postion.x = 81;
 	test4->postion.y = 55;
+	test4->team = 1;
 	test4->goingTo = test4->postion;
 	test4->color = TCODColor::blue;
+
+	Unit* testEnemy = new Unit();
+	testEnemy->character = TCOD_CHAR_SMILIE;
+	testEnemy->postion.x = 10;
+	testEnemy->postion.y = 15;
+	testEnemy->team = 2;
+	testEnemy->goingTo = testEnemy->postion;
+	testEnemy->color = TCODColor::azure;
+	testEnemy->aiming = test4;
 
 	unitList.push_back(test);
 	unitList.push_back(test2);
 	unitList.push_back(test3);
 	unitList.push_back(test4);
+	unitList.push_back(testEnemy);
 
-	controlGroups[1].push_back(test);
-	controlGroups[2].push_back(test2);
-	controlGroups[3].push_back(test);
-	controlGroups[3].push_back(test2);
-	controlGroups[3].push_back(test3);
-	controlGroups[3].push_back(test4);
+
 	//Need to preinitialize these because libtcod gets crazy without initialization...
 	TCOD_key_t key;
 	key.shift = false;
@@ -119,17 +134,25 @@ int main(int argc, char* argv[]) {
 			if (rand->getInt(0, 15) == 5) {
 				tile.character = '\"';
 			}
-			if (x == 4 || (y == 10 && x > 10)) {
+			/*if ( (y == 10 && x > 10)) {
 				tile.character = '#';
-			}
+			} 
+			if ((y == 30 && x < 130)) {
+				tile.character = '#';
+			}*/
+
+
 			if (tile.character == '.' || tile.character == ' ' || tile.character == '\"') {
 				tile.foreground = TCODColor::green;
+				tile.background = TCODColor::darkerGreen;
 				tile.invisible = true;
 				tile.walkable = true;
 				testMap.map->setProperties(x, y, true, true);
 			}
 			else {
 				tile.foreground = TCODColor::orange;
+				tile.background = TCODColor::red;
+
 				tile.invisible = false;
 				tile.walkable = false;
 				testMap.map->setProperties(x, y, false, false);
@@ -159,7 +182,7 @@ int main(int argc, char* argv[]) {
 }
 
 void input(TCOD_key_t* key, TCOD_mouse_t* mouse) {
-	int scrollSpeed = 3;
+	int scrollSpeed = 5;
 	bool shiftPressed = key->shift;
 	if (mouse->x <= 1) {
 		TCODMouse::move(1, mouse->y);
@@ -187,77 +210,28 @@ void input(TCOD_key_t* key, TCOD_mouse_t* mouse) {
 		break;
 		if (key->pressed) {
 	case TCODK_0:
-		//Call up control group
-		if (key->lctrl) {
-			controlGroups[0] = selectedUnits;
-		}
-		else {
-			selectedUnits = controlGroups[0];
-		}
+		callControlGroup(key, 0);
 		break;
 	case TCODK_1:
-		if (key->lctrl) {
-			controlGroups[1] = selectedUnits;
-		}
-		else {
-			selectedUnits = controlGroups[1];
-		}		break;
+		callControlGroup(key, 1);
+		break;
 	case TCODK_2:
-		if (key->lctrl) {
-			controlGroups[2] = selectedUnits;
-		}
-		else {
-			selectedUnits = controlGroups[2];
-		}		break;
+		callControlGroup(key, 2);
+		break;
 	case TCODK_3:
-		if (key->lctrl) {
-			controlGroups[3] = selectedUnits;
-		}
-		else {
-			selectedUnits = controlGroups[3];
-		}		break;
+		callControlGroup(key, 3); break;
 	case TCODK_4:
-		if (key->lctrl) {
-			controlGroups[4] = selectedUnits;
-		}
-		else {
-			selectedUnits = controlGroups[4];
-		}		break;
+		callControlGroup(key, 4); break;
 	case TCODK_5:
-		if (key->lctrl) {
-			controlGroups[5] = selectedUnits;
-		}
-		else {
-			selectedUnits = controlGroups[5];
-		}		break;
+		callControlGroup(key, 5); break;
 	case TCODK_6:
-		if (key->lctrl) {
-			controlGroups[6] = selectedUnits;
-		}
-		else {
-			selectedUnits = controlGroups[6];
-		}		break;
+		callControlGroup(key, 6); break;
 	case TCODK_7:
-		if (key->lctrl) {
-			controlGroups[7] = selectedUnits;
-		}
-		else {
-			selectedUnits = controlGroups[7];
-		}		break;
+		callControlGroup(key, 7); break;
 	case TCODK_8:
-		if (key->lctrl) {
-			controlGroups[8] = selectedUnits;
-		}
-		else {
-			selectedUnits = controlGroups[8];
-		}		break;
+		callControlGroup(key, 8); break;
 	case TCODK_9:
-		if (key->lctrl) {
-			controlGroups[9] = selectedUnits;
-		}
-		else {
-			selectedUnits = controlGroups[9];
-		}		
+		callControlGroup(key, 9);
 		break;
 		}
 	default:break;
@@ -267,6 +241,7 @@ void input(TCOD_key_t* key, TCOD_mouse_t* mouse) {
 	int worldMouseX = mouse->cx - viewportX;
 	int worldMouseY = mouse->cy - viewportY;
 	TCODConsole::root->print(0, 6, key->text);
+
 	//If to draw box
 	if (leftMouseClicking && mouse->lbutton) {
 		int beginningX = selectionBoxStartX;
@@ -299,7 +274,20 @@ void input(TCOD_key_t* key, TCOD_mouse_t* mouse) {
 
 		//Check if player is
 		for (Unit* u : unitList) {
-			if (u->postion.x >= beginningX-viewportX && u->postion.x <= (beginningX + width) - viewportX && u->postion.y >= beginningY - viewportY && u->postion.y <= (beginningY + height) - viewportY) {
+			if (u->postion.x >= beginningX-viewportX && u->postion.x <= (beginningX + width) - viewportX && u->postion.y >= beginningY - viewportY && u->postion.y <= (beginningY + height) - viewportY && u->team == playerTeam) {
+				selectedUnits.push_back(u);
+			}
+		}
+	}
+
+	if (mouse->lbutton) {
+		//If for character
+		if (mouse->cy == 80) {
+			int currentChar = mouse->cx - hotkeyStartChar;
+			//Then is selecting things
+			if (selectedUnits.size() > currentChar) {
+				Unit* u = selectedUnits.at(currentChar);
+				selectedUnits.clear();
 				selectedUnits.push_back(u);
 			}
 		}
@@ -348,6 +336,34 @@ void input(TCOD_key_t* key, TCOD_mouse_t* mouse) {
 }
 
 void update() {
+	std::vector<int> projs;
+	int k = 0;
+	for (Projectile* projectile : projectiles) {
+		
+		projectile->positionX -= cos(projectile->degree) * projectile->speed;
+		projectile->positionY -= sin(projectile->degree) * projectile->speed;
+
+		//Check for intersection in ai
+		for (Unit* u : unitList) {
+			if (round(projectile->positionX) == round(u->postion.x) && round(projectile->positionY) == round(u->postion.y)) {
+				u->hp--;
+				projs.push_back(k);
+				break;
+			}
+		}
+		projectile->time++;
+		if (projectile->time> 500) {
+			projs.push_back(k);
+		}
+		k++;
+	}
+
+	int b = 0;
+	for (int pro : projs) {
+		projectiles.erase(projectiles.begin() + pro - b);
+		b++;
+	}
+
 	for (Unit* u : unitList) {
 		testMap.map->setProperties(u->postion.x, u->postion.y, true, false);
 	}
@@ -368,16 +384,50 @@ void update() {
 			u->moveTicker++;
 			if (u->moveTicker % u->moveSpeed == 0) {
 				if (u->path->size() > u->pathTicker) {
+					int x;
+					int y;
 					testMap.map->setProperties(u->postion.x, u->postion.y, true, true);
 
-					u->path->get(u->pathTicker, &u->postion.x, &u->postion.y);
+					u->path->get(u->pathTicker, &x, &y);
+					u->postion.x = x;
+					u->postion.y = y;
 					u->pathTicker++;
 				}
 			}
 		}
+
+		//Control AIs
+		TCODRandom* rand = TCODRandom::getInstance();
+		if (u->team != playerTeam && u->reload % 30 == 0) {
+			Projectile* proj = new Projectile();
+			proj->positionX = u->postion.x;
+			proj->positionY = u->postion.y;
+			proj->degree = std::atan2(-(u->aiming->postion.y - u->postion.y), -(u->aiming->postion.x - u->postion.x));
+			//proj->degree +=rand->getDouble(-0.05, 0.05);
+			proj->speed = 1;
+			projectiles.push_back(proj);
+			u->reload = 0;
+		}
+
+		if (u->hp < 0) {
+			//Ded...
+		}
+
+		u->reload++;
 	}
+	
 }
 
+void callControlGroup(TCOD_key_t* key, int keyNum) {
+	if (key->lctrl) {
+		controlGroups[keyNum] = selectedUnits;
+	}
+	else {
+		if (!controlGroups[keyNum].empty()) {
+			selectedUnits = controlGroups[keyNum];
+		}
+	}
+}
 void render() {
 	TCODConsole::root->setDefaultBackground(TCODColor::black);
 
@@ -387,6 +437,8 @@ void render() {
 		for(int y = 0; y < testMap.height; y++) {
 			TCODConsole::root->setChar(x + viewportX, y + viewportY, testMap.getTile(x, y).character);
 			TCODConsole::root->setCharForeground(x + viewportX, y + viewportY, testMap.getTile(x, y).foreground);
+			TCODConsole::root->setCharBackground(x + viewportX, y + viewportY, testMap.getTile(x, y).background);
+
 		}
 	}
 
@@ -417,22 +469,78 @@ void render() {
 			Point pt = u->actionQueue.at(i);
 			TCODLine::init((lastPosition.x), (lastPosition.y), pt.x, pt.y);
 			int counterX = lastPosition.x, counterY = lastPosition.y;
+			int ticker = 0;
 			do {
-				TCODConsole::root->setCharBackground(counterX + viewportX, counterY + viewportY, TCODColor::yellow);
+				if (ticker % 2 == 0) 
+					TCODConsole::root->setCharBackground(counterX + viewportX, counterY + viewportY, TCODColor::lighterGreen);
+				ticker++;
 			} while (!TCODLine::step(&counterX, &counterY));
 			lastPosition.x = counterX;
 			lastPosition.y = counterY;
 		}
 	}
 
-	TCODConsole::root->printFrame(0, 70, 160, 30, true, TCOD_BKGND_SET);
-
-	//Selected characters
-	for (int i = 0; i < selectedUnits.size(); i++) {
-		TCODConsole::root->putChar(10 + i, 80, selectedUnits.at(i)->character);
-		TCODConsole::root->setCharForeground(10 + i, 80, selectedUnits.at(i)->color);
+	for (Projectile* proj : projectiles) {
+		TCODConsole::root->putChar((proj->positionX) + viewportX, (proj->positionY) + viewportY, 'o');
+		TCODConsole::root->setCharForeground((proj->positionX) + viewportX, (proj->positionY) + viewportY, TCODColor::white);
 	}
 
+	//Bottom console
+	TCODConsole::root->printFrame(0, 70, 160, 30, true, TCOD_BKGND_SET);
+
+	//Minimap
+	TCODConsole::root->printFrame(0, 70, 30, 30, true, TCOD_BKGND_SET);
+
+	//Hotkey displayers
+	for (int k = 1; k < 10; k++) {
+		std::vector<Unit*> controlGroup = controlGroups[k];
+		int index = k - 1;
+		if (!controlGroup.empty()) {
+			TCODConsole::root->putChar(hotkeyStartChar + index * 4, 71, k + 48);
+			TCODConsole::root->putChar(hotkeyStartChar + index * 4 + 2, 71, controlGroup.at(0)->character);
+			TCODConsole::root->setCharForeground(hotkeyStartChar + index * 4 + 2, 71, controlGroup.at(0)->color);
+			TCODConsole::root->putChar(hotkeyStartChar + index * 4 + 3, 71,TCOD_CHAR_VLINE);
+		}
+	}
+
+	std::vector<Unit*> controlGroup = controlGroups[0];
+	if (!controlGroup.empty()) {
+		TCODConsole::root->putChar(hotkeyStartChar + 10*4, 71, '0');
+		TCODConsole::root->putChar(hotkeyStartChar + 10*4 + 2, 71, controlGroup.at(0)->character);
+		TCODConsole::root->setCharForeground(hotkeyStartChar + 10 * 4 + 2, 71, controlGroup.at(0)->color);
+		TCODConsole::root->putChar(hotkeyStartChar +10 * 4 + 3, 71, TCOD_CHAR_VLINE);
+
+	}
+	//Selected characters
+	for (int i = 0; i < selectedUnits.size(); i++) {
+		TCODConsole::root->putChar(hotkeyStartChar + i, 80, selectedUnits.at(i)->character);
+		TCODConsole::root->setCharForeground(hotkeyStartChar + i, 80, selectedUnits.at(i)->color);
+	}
+
+	//Print hitpoints
+	int k = 3;
+	int multipler = 3;
+	for (Unit* u : unitList) {
+		TCODConsole::root->setChar(0, k, u->character);
+		TCODConsole::root->setCharForeground(0, k, u->color);
+		TCODConsole::root->print(2, k,"%d", u->hp);
+		//Set hp bars
+
+		int side = 1;
+		// fill the background
+		TCODConsole::root->setDefaultBackground(TCODColor::blue);
+		double width = 20;
+		TCODConsole::root->rect(side, k, width, 1, false, TCOD_BKGND_SET);
+		double twenty = 20;
+		int barWidth = (int)(((double)u->hp) / twenty * width);
+		if (barWidth > 0) {
+			// draw the bar
+			TCODConsole::root->setDefaultBackground(TCODColor::red);
+			TCODConsole::root->rect(side, k, barWidth, 1, false, TCOD_BKGND_SET);
+		}
+		// print text on top of the bar
+		k++;
+	}
 	//Minimap
 	//minimapImg.blit(TCODConsole::root, 20, 80, TCOD_BKGND_SET, 0.125, 0.125);
 
