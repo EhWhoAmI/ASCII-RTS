@@ -11,13 +11,15 @@ public:
 	int moveSpeed = 2;
 	int moveTicker = 0;
 
-	Point postion;
+	Point position;
 	std::deque<Point> actionQueue;
 	Point goingTo;
 
 	char character;
 	TCODColor color;
 
+	//Can it shoot or not
+	bool shooting = false;
 	int team;
 
 	int reload = 0;

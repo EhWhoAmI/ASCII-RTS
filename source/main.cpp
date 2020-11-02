@@ -67,42 +67,42 @@ int main(int argc, char* argv[]) {
 
 	Unit* test = new Unit();
 	test->character = '@';
-	test->postion.x = 80;
-	test->postion.y = 50;
-	test->goingTo = test->postion;
+	test->position.x = 80;
+	test->position.y = 50;
+	test->goingTo = test->position;
 	test->team = 1;
 	test->color = TCODColor::green;
 
 	Unit* test2 = new Unit();
 	test2->character = '@';
-	test2->postion.x = 81;
-	test2->postion.y = 51;
+	test2->position.x = 81;
+	test2->position.y = 51;
 	test2->team = 1;
-	test2->goingTo = test2->postion;
+	test2->goingTo = test2->position;
 	test2->color = TCODColor::red;
 
 	Unit* test3 = new Unit();
 	test3->character = '@';
-	test3->postion.x = 83;
-	test3->postion.y = 51;
+	test3->position.x = 83;
+	test3->position.y = 51;
 	test3->team = 1;
-	test3->goingTo = test3->postion;
+	test3->goingTo = test3->position;
 	test3->color = TCODColor::orange;
 
 	Unit* test4 = new Unit();
 	test4->character = '@';
-	test4->postion.x = 81;
-	test4->postion.y = 55;
+	test4->position.x = 81;
+	test4->position.y = 55;
 	test4->team = 1;
-	test4->goingTo = test4->postion;
+	test4->goingTo = test4->position;
 	test4->color = TCODColor::blue;
 
 	Unit* testEnemy = new Unit();
 	testEnemy->character = TCOD_CHAR_SMILIE;
-	testEnemy->postion.x = 10;
-	testEnemy->postion.y = 15;
+	testEnemy->position.x = 10;
+	testEnemy->position.y = 15;
 	testEnemy->team = 2;
-	testEnemy->goingTo = testEnemy->postion;
+	testEnemy->goingTo = testEnemy->position;
 	testEnemy->color = TCODColor::azure;
 	testEnemy->aiming = test4;
 
@@ -134,12 +134,12 @@ int main(int argc, char* argv[]) {
 			if (rand->getInt(0, 15) == 5) {
 				tile.character = '\"';
 			}
-			/*if ( (y == 10 && x > 10)) {
+			if ( (y == 10 && x > 10)) {
 				tile.character = '#';
 			} 
 			if ((y == 30 && x < 130)) {
 				tile.character = '#';
-			}*/
+			}
 
 
 			if (tile.character == '.' || tile.character == ' ' || tile.character == '\"') {
@@ -238,6 +238,13 @@ void input(TCOD_key_t* key, TCOD_mouse_t* mouse) {
 
 	}
 
+	if (key->pressed && (key->c == 'a' || key->c == 'A')) {
+		//Toggle attack
+		for (Unit* u : selectedUnits) {
+			u->shooting = !u->shooting;
+		}
+	}
+
 	int worldMouseX = mouse->cx - viewportX;
 	int worldMouseY = mouse->cy - viewportY;
 	TCODConsole::root->print(0, 6, key->text);
@@ -274,7 +281,7 @@ void input(TCOD_key_t* key, TCOD_mouse_t* mouse) {
 
 		//Check if player is
 		for (Unit* u : unitList) {
-			if (u->postion.x >= beginningX-viewportX && u->postion.x <= (beginningX + width) - viewportX && u->postion.y >= beginningY - viewportY && u->postion.y <= (beginningY + height) - viewportY && u->team == playerTeam) {
+			if (u->position.x >= beginningX-viewportX && u->position.x <= (beginningX + width) - viewportX && u->position.y >= beginningY - viewportY && u->position.y <= (beginningY + height) - viewportY && u->team == playerTeam) {
 				selectedUnits.push_back(u);
 			}
 		}
@@ -319,7 +326,7 @@ void input(TCOD_key_t* key, TCOD_mouse_t* mouse) {
 				u->pathTicker = 0;
 
 				u->path = new TCODPath(testMap.map);
-				u->path->compute(u->postion.x, u->postion.y, u->goingTo.x, u->goingTo.y);
+				u->path->compute(u->position.x, u->position.y, u->goingTo.x, u->goingTo.y);
 			}
 			units++;
 		}
@@ -336,7 +343,7 @@ void input(TCOD_key_t* key, TCOD_mouse_t* mouse) {
 }
 
 void update() {
-	std::vector<int> projs;
+	std::vector<Projectile*> projs;
 	int k = 0;
 	for (Projectile* projectile : projectiles) {
 		
@@ -345,39 +352,55 @@ void update() {
 
 		//Check for intersection in ai
 		for (Unit* u : unitList) {
-			if (round(projectile->positionX) == round(u->postion.x) && round(projectile->positionY) == round(u->postion.y)) {
+			if (round(projectile->positionX) == round(u->position.x) && round(projectile->positionY) == round(u->position.y)) {
 				u->hp--;
-				projs.push_back(k);
+				projs.push_back(projectile);
 				break;
 			}
 		}
+		if (!testMap.getTile(round(projectile->positionX), round(projectile->positionY)).walkable) {
+			projs.push_back(projectile);
+			continue;
+		}
 		projectile->time++;
 		if (projectile->time> 500) {
-			projs.push_back(k);
+			projs.push_back(projectile);
 		}
 		k++;
 	}
+		
 
 	int b = 0;
-	for (int pro : projs) {
-		projectiles.erase(projectiles.begin() + pro - b);
+	for (Projectile* pro : projs) {
+		projectiles.erase(std::remove(projectiles.begin(), projectiles.end(), pro), projectiles.end());
 		b++;
 	}
 
+	//Clear map
+	for (int i = 0; i < testMap.width * testMap.height; i++) {
+		testMap.tiles[i].visible = false;
+	}
 	for (Unit* u : unitList) {
-		testMap.map->setProperties(u->postion.x, u->postion.y, true, false);
+		testMap.map->setProperties(u->position.x, u->position.y, true, false);
+		if (u->team == playerTeam) {
+			//Compute fov
+			testMap.map->computeFov(u->position.x, u->position.y, 20);
+			for (int i = 0; i < testMap.width * testMap.height; i++) {
+				testMap.tiles[i].visible |= testMap.map->isInFov(i % testMap.width, i / testMap.width);
+			}
+		}
 	}
 	for (Unit *u: unitList) {
-		if ((u->postion.x == u->goingTo.x && u->postion.y == u->goingTo.y) || u->path->size() <= 0) {
+		if ((u->position.x == u->goingTo.x && u->position.y == u->goingTo.y) || u->path->size() <= 0) {
 			u->pathTicker = 0;
 			if (!u->actionQueue.empty()) {
 				u->goingTo = u->actionQueue.front();
 				u->actionQueue.pop_front();
 				u->path = new TCODPath(testMap.map);
-				u->path->compute(u->postion.x, u->postion.y, u->goingTo.x, u->goingTo.y);
+				u->path->compute(u->position.x, u->position.y, u->goingTo.x, u->goingTo.y);
 			}
 			else {
-				u->goingTo = u->postion;
+				u->goingTo = u->position;
 			}
 		}
 		else {
@@ -386,11 +409,11 @@ void update() {
 				if (u->path->size() > u->pathTicker) {
 					int x;
 					int y;
-					testMap.map->setProperties(u->postion.x, u->postion.y, true, true);
+					testMap.map->setProperties(u->position.x, u->position.y, true, true);
 
 					u->path->get(u->pathTicker, &x, &y);
-					u->postion.x = x;
-					u->postion.y = y;
+					u->position.x = x;
+					u->position.y = y;
 					u->pathTicker++;
 				}
 			}
@@ -398,19 +421,44 @@ void update() {
 
 		//Control AIs
 		TCODRandom* rand = TCODRandom::getInstance();
-		if (u->team != playerTeam && u->reload % 30 == 0) {
+		if (u->team != playerTeam && u->reload % 30 == 0 && u->shooting) {
 			Projectile* proj = new Projectile();
-			proj->positionX = u->postion.x;
-			proj->positionY = u->postion.y;
-			proj->degree = std::atan2(-(u->aiming->postion.y - u->postion.y), -(u->aiming->postion.x - u->postion.x));
+			proj->positionX = u->position.x;
+			proj->positionY = u->position.y;
+			proj->degree = std::atan2(-(u->aiming->position.y - u->position.y), -(u->aiming->position.x - u->position.x));
 			//proj->degree +=rand->getDouble(-0.05, 0.05);
 			proj->speed = 1;
 			projectiles.push_back(proj);
 			u->reload = 0;
 		}
+		else if(u->team==playerTeam && u->shooting){
+			//Target closest enemy
+			for (Unit* enemy : unitList) {
+				if (enemy->team != playerTeam) {
+					u->aiming = enemy;
+					//And shoot
+					if (u->reload % 30 == 0) {
+						Projectile* proj = new Projectile();
+						proj->positionX = u->position.x;
+						proj->positionY = u->position.y;
+						proj->degree = std::atan2(-(u->aiming->position.y - u->position.y), -(u->aiming->position.x - u->position.x));
+						//proj->degree +=rand->getDouble(-0.05, 0.05);
+						proj->speed = 1;
+						projectiles.push_back(proj);
+						u->reload = 0;
+					}
+					break;
+				}
+			}
+			
+		}
+
+		//Player stuff target enemy
+
 
 		if (u->hp < 0) {
 			//Ded...
+			u->reload = 1;
 		}
 
 		u->reload++;
@@ -435,10 +483,17 @@ void render() {
 	int x = 0, y = 0;
 	for (int x = 0; x < testMap.width; x++) {
 		for(int y = 0; y < testMap.height; y++) {
-			TCODConsole::root->setChar(x + viewportX, y + viewportY, testMap.getTile(x, y).character);
-			TCODConsole::root->setCharForeground(x + viewportX, y + viewportY, testMap.getTile(x, y).foreground);
-			TCODConsole::root->setCharBackground(x + viewportX, y + viewportY, testMap.getTile(x, y).background);
-
+			if (testMap.getTile(x, y).visible) {
+				TCODConsole::root->setChar(x + viewportX, y + viewportY, testMap.getTile(x, y).character);
+				TCODConsole::root->setCharForeground(x + viewportX, y + viewportY, testMap.getTile(x, y).foreground);
+				TCODConsole::root->setCharBackground(x + viewportX, y + viewportY, testMap.getTile(x, y).background);
+			}
+			else {
+				TCODConsole::root->setChar(x + viewportX, y + viewportY, testMap.getTile(x, y).character);
+				TCODConsole::root->setCharForeground(x + viewportX, y + viewportY, testMap.getTile(x, y).foreground*0.5);
+				TCODConsole::root->setCharBackground(x + viewportX, y + viewportY, testMap.getTile(x, y).background*0.5);
+			}
+		
 		}
 	}
 
@@ -449,18 +504,18 @@ void render() {
 	}
 
 	for (Unit* u : unitList) {
-		TCODConsole::root->putChar((u->postion.x) + viewportX, (u->postion.y) + viewportY, u->character);
-		TCODConsole::root->setCharForeground((u->postion.x) + viewportX, (u->postion.y) + viewportY, u->color);
+		TCODConsole::root->putChar((u->position.x) + viewportX, (u->position.y) + viewportY, u->character);
+		TCODConsole::root->setCharForeground((int) ((u->position.x) + viewportX), (int)((u->position.y) + viewportY), u->color);
 	}
 
 	for (Unit* u : selectedUnits) {
-		TCODConsole::root->putChar((u->postion.x - 1) + viewportX, (u->postion.y - 1) + viewportY, TCOD_CHAR_NW);
-		TCODConsole::root->putChar((u->postion.x + 1) + viewportX, (u->postion.y - 1) + viewportY, TCOD_CHAR_NE);
-		TCODConsole::root->putChar((u->postion.x - 1) + viewportX, (u->postion.y + 1) + viewportY, TCOD_CHAR_SW);
-		TCODConsole::root->putChar((u->postion.x + 1) + viewportX, (u->postion.y + 1) + viewportY, TCOD_CHAR_SE);
+		TCODConsole::root->putChar((u->position.x - 1) + viewportX, (u->position.y - 1) + viewportY, TCOD_CHAR_NW);
+		TCODConsole::root->putChar((u->position.x + 1) + viewportX, (u->position.y - 1) + viewportY, TCOD_CHAR_NE);
+		TCODConsole::root->putChar((u->position.x - 1) + viewportX, (u->position.y + 1) + viewportY, TCOD_CHAR_SW);
+		TCODConsole::root->putChar((u->position.x + 1) + viewportX, (u->position.y + 1) + viewportY, TCOD_CHAR_SE);
 
 		//Draw destination
-		if (u->postion.x != u->goingTo.x && u->goingTo.y != u->postion.y) {
+		if (u->position.x != u->goingTo.x && u->goingTo.y != u->position.y) {
 			TCODConsole::root->setCharBackground((u->goingTo.x) + viewportX, (u->goingTo.y) + viewportY, TCODColor::darkYellow);
 		}
 		//If there is a queue, draw that
@@ -511,21 +566,17 @@ void render() {
 		TCODConsole::root->putChar(hotkeyStartChar +10 * 4 + 3, 71, TCOD_CHAR_VLINE);
 
 	}
+
 	//Selected characters
 	for (int i = 0; i < selectedUnits.size(); i++) {
 		TCODConsole::root->putChar(hotkeyStartChar + i, 80, selectedUnits.at(i)->character);
 		TCODConsole::root->setCharForeground(hotkeyStartChar + i, 80, selectedUnits.at(i)->color);
 	}
 
-	//Print hitpoints
+	//HHitpoint bars
 	int k = 3;
 	int multipler = 3;
 	for (Unit* u : unitList) {
-		TCODConsole::root->setChar(0, k, u->character);
-		TCODConsole::root->setCharForeground(0, k, u->color);
-		TCODConsole::root->print(2, k,"%d", u->hp);
-		//Set hp bars
-
 		int side = 1;
 		// fill the background
 		TCODConsole::root->setDefaultBackground(TCODColor::blue);
@@ -537,10 +588,20 @@ void render() {
 			// draw the bar
 			TCODConsole::root->setDefaultBackground(TCODColor::red);
 			TCODConsole::root->rect(side, k, barWidth, 1, false, TCOD_BKGND_SET);
+			//Remove all text
+			for (int j = 0; j < barWidth; j++) {
+				TCODConsole::root->setChar(j, k, (char)' ');
+			}
 		}
+
 		// print text on top of the bar
+		TCODConsole::root->setChar(0, k, u->character);
+		TCODConsole::root->setCharForeground(0, k, u->color);
+		TCODConsole::root->print(2, k, "%d", u->hp);
 		k++;
 	}
+	TCODConsole::root->setDefaultBackground(TCODColor::black);
+
 	//Minimap
 	//minimapImg.blit(TCODConsole::root, 20, 80, TCOD_BKGND_SET, 0.125, 0.125);
 

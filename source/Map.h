@@ -22,6 +22,7 @@ public:
 	TCODColor background;
 	bool invisible;
 	bool walkable;
+	bool visible = false;
 };
 
 struct Map {
@@ -56,9 +57,9 @@ public:
 	Point position;
 	int type;
 	int getX() {
-		return position.x;
+		return (int) position.x;
 	}
 	int getY() {
-		return position.y;
+		return (int) position.y;
 	}
 };
