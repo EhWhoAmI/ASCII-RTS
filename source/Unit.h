@@ -19,7 +19,7 @@ public:
 	TCODColor color;
 
 	//Can it shoot or not
-	bool shooting = false;
+	bool shooting = true;
 	int team;
 
 	int reload = 0;
